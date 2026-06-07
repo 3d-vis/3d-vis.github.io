@@ -156,6 +156,38 @@
       height: 100%;
     }
 
+    .unsupported-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.58);
+      backdrop-filter: blur(10px);
+    }
+
+    .unsupported-message {
+      width: min(420px, calc(100vw - 48px));
+      padding: 22px;
+      border: 2px solid #000000;
+      border-radius: 8px;
+      background: #ffffff;
+      text-align: center;
+    }
+
+    .unsupported-message strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .unsupported-message p {
+      margin: 10px 0 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
     @media (max-width: 680px) {
       .hero-title {
         align-items: center;
@@ -205,7 +237,7 @@
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
     camera.position.set(0, 0.45, 4);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = createWebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     preview.appendChild(renderer.domElement);
@@ -219,6 +251,31 @@
 
     const root = new THREE.Group();
     scene.add(root);
+
+    function createWebGLRenderer(options) {
+      try {
+        const renderer = new THREE.WebGLRenderer(options);
+        if (!renderer.getContext()) throw new Error('WebGL context is unavailable.');
+        return renderer;
+      } catch (error) {
+        console.error('This browser does not support WebGL rendering required by Three.js.', error);
+        showUnsupportedOverlay();
+        throw error;
+      }
+    }
+
+    function showUnsupportedOverlay() {
+      const overlay = document.createElement('div');
+      overlay.className = 'unsupported-overlay';
+      overlay.setAttribute('role', 'alert');
+      overlay.innerHTML = `
+        <div class="unsupported-message">
+          <strong>Browser not supported</strong>
+          <p>This browser or GPU does not support WebGL rendering required by Three.js.</p>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
 
     function fitObject(object) {
       const box = new THREE.Box3().setFromObject(object);
