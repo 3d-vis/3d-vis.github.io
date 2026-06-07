@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D Data Viewers</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #ffffff;
+      --text: #000000;
+      --muted: #000000;
+      --line: #000000;
+      --panel: #ffffff;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      width: min(860px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 56px 0;
+    }
+
+    .hero-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 34px;
+      margin-bottom: 26px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 6vw, 58px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .logo {
+      width: 74px;
+      height: 74px;
+      flex: 0 0 auto;
+      transform-style: preserve-3d;
+      animation: spinCube 4.2s linear infinite;
+    }
+
+    .cube {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transform: rotateX(-24deg) rotateY(35deg);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      border: 2px solid #000000;
+      background: #ffffff;
+    }
+
+    .front {
+      transform: translateZ(37px);
+    }
+
+    .back {
+      transform: rotateY(180deg) translateZ(37px);
+    }
+
+    .right {
+      transform: rotateY(90deg) translateZ(37px);
+    }
+
+    .left {
+      transform: rotateY(-90deg) translateZ(37px);
+    }
+
+    .top {
+      transform: rotateX(90deg) translateZ(37px);
+    }
+
+    .bottom {
+      transform: rotateX(-90deg) translateZ(37px);
+    }
+
+    @keyframes spinCube {
+      from {
+        transform: rotateX(-18deg) rotateY(0deg);
+      }
+
+      to {
+        transform: rotateX(-18deg) rotateY(360deg);
+      }
+    }
+
+    p {
+      max-width: 640px;
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.55;
+    }
+
+    .drop-zone {
+      display: grid;
+      place-items: center;
+      gap: 10px;
+      min-height: 170px;
+      margin-bottom: 18px;
+      padding: 22px;
+      border: 2px dashed #000000;
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--muted);
+      font-weight: 750;
+      text-align: center;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    body.dragging .drop-zone {
+      border-color: #000000;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .support {
+      margin: 0;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text);
+    }
+
+    .preview {
+      width: 100%;
+      height: min(390px, 42vh);
+      min-height: 280px;
+      margin-top: 18px;
+      overflow: hidden;
+    }
+
+    .preview canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    @media (max-width: 680px) {
+      .hero-title {
+        align-items: center;
+        flex-direction: column;
+        gap: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="hero-title">
+      <div class="logo" aria-hidden="true">
+        <div class="cube">
+          <span class="face front"></span>
+          <span class="face back"></span>
+          <span class="face right"></span>
+          <span class="face left"></span>
+          <span class="face top"></span>
+          <span class="face bottom"></span>
+        </div>
+      </div>
+      <h1>ONLINE 3D VIEWER</h1>
+    </div>
+    <div class="drop-zone">
+      <div>Drag and drop 3D models here!</div>
+      <p class="support">(Support file format: ply, glb)</p>
+    </div>
+    <section id="preview" class="preview" aria-label="Default 3D model preview"></section>
+  </main>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const preview = document.querySelector('#preview');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
+    camera.position.set(0, 0.45, 4);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    preview.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 2.2));
+    const key = new THREE.DirectionalLight(0xffffff, 1.4);
+    key.position.set(3, 5, 4);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.8);
+    fill.position.set(-4, 2, -5);
+    scene.add(key, fill);
+
+    const root = new THREE.Group();
+    scene.add(root);
+
+    function fitObject(object) {
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const maxAxis = Math.max(size.x, size.y, size.z, 0.000001);
+      object.position.sub(center);
+      object.scale.setScalar(2.2 / maxAxis);
+
+      const fittedBox = new THREE.Box3().setFromObject(object);
+      const fittedSize = fittedBox.getSize(new THREE.Vector3());
+      const radius = Math.max(fittedSize.length() * 0.56, 1);
+      camera.position.set(0, radius * 0.22, radius * 2.65);
+      camera.lookAt(0, 0, 0);
+    }
+
+    function resizePreview() {
+      const rect = preview.getBoundingClientRect();
+      const width = Math.max(1, rect.width);
+      const height = Math.max(1, rect.height);
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+
+    new GLTFLoader().load('data/fire_hydrant_216_22815_47624.glb', (gltf) => {
+      gltf.scene.traverse((child) => {
+        if (!child.isMesh) return;
+        child.material = makeUnlitSurfaceMaterial(child.material, Boolean(child.geometry?.attributes?.color));
+      });
+      root.add(gltf.scene);
+      fitObject(gltf.scene);
+    });
+
+    function makeUnlitSurfaceMaterial(material, vertexColors) {
+      if (Array.isArray(material)) return material.map((item) => makeUnlitSurfaceMaterial(item, vertexColors));
+      return new THREE.MeshBasicMaterial({
+        color: material.color ? material.color.clone() : new THREE.Color(0x000000),
+        map: material.map || null,
+        vertexColors,
+        transparent: material.transparent,
+        opacity: material.opacity,
+        alphaMap: material.alphaMap || null,
+        side: THREE.DoubleSide
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      root.rotation.y += 0.01;
+      renderer.render(scene, camera);
+    }
+
+    resizePreview();
+    animate();
+    window.addEventListener('resize', resizePreview);
+  </script>
+  <script>
+    const DB_NAME = 'three-data-viewer';
+    const STORE_NAME = 'pending-files';
+    let dragDepth = 0;
+
+    function extension(file) {
+      return file.name.toLowerCase().split('.').pop() || '';
+    }
+
+    function targetFor(file) {
+      const ext = extension(file);
+      if (ext === 'ply') return 'ply.html?autoload=1';
+      if (ext === 'glb' || ext === 'gltf') return 'glb.html?autoload=1';
+      return '';
+    }
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = () => {
+          request.result.createObjectStore(STORE_NAME);
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function savePendingFile(file) {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(file, 'latest');
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function routeFile(file) {
+      const target = targetFor(file);
+      if (!target) {
+        alert('This file format is not supported.');
+        return;
+      }
+      await savePendingFile(file);
+      window.location.href = target;
+    }
+
+    window.addEventListener('dragenter', (event) => {
+      event.preventDefault();
+      dragDepth += 1;
+      document.body.classList.add('dragging');
+    });
+
+    window.addEventListener('dragover', (event) => {
+      event.preventDefault();
+    });
+
+    window.addEventListener('dragleave', (event) => {
+      event.preventDefault();
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) document.body.classList.remove('dragging');
+    });
+
+    window.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dragDepth = 0;
+      document.body.classList.remove('dragging');
+      routeFile(event.dataTransfer?.files?.[0]);
+    });
+  </script>
+</body>
+</html>
